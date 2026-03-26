@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Manage Exams - AI Exam System{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-file-alt"></i> Manage Exams</h1>
+    <a href="{{ url_for('create_exam') }}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Create Exam
+    </a>
+</div>
+
+<div class="card">
+    {% if exams %}
+    <div style="overflow-x:auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Course</th>
+                    <th>Questions</th>
+                    <th>Time Limit</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for exam in exams %}
+                <tr>
+                    <td><strong>{{ exam.title }}</strong><br>
+                        <small style="color:#64748b">{{ exam.description[:60] if exam.description else '' }}</small>
+                    </td>
+                    <td><span class="badge badge-info">{{ exam.course }}</span></td>
+                    <td><i class="fas fa-question-circle" style="color:#2563eb"></i> {{ exam.question_count }}</td>
+                    <td><i class="fas fa-clock" style="color:#7c3aed"></i> {{ exam.time_limit }} min</td>
+                    <td>
+                        {% if exam.is_active %}
+                            <span class="badge badge-success"><i class="fas fa-circle"></i> Active</span>
+                        {% else %}
+                            <span class="badge badge-secondary">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ exam.created_at[:10] }}</td>
+                    <td>
+                        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+                            <a href="{{ url_for('add_questions', exam_id=exam.id) }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-edit"></i> Questions
+                            </a>
+                            <form method="POST" action="{{ url_for('toggle_exam', exam_id=exam.id) }}" style="display:inline">
+                                <button type="submit" class="btn btn-sm {{ 'btn-warning' if exam.is_active else 'btn-success' }}">
+                                    <i class="fas fa-{{ 'pause' if exam.is_active else 'play' }}"></i>
+                                    {{ 'Deactivate' if exam.is_active else 'Activate' }}
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('delete_exam', exam_id=exam.id) }}" style="display:inline"
+                                  onsubmit="return confirm('Delete this exam and all its data?')">
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-file-alt"></i>
+        <p>No exams created yet. <a href="{{ url_for('create_exam') }}">Create your first exam</a>.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

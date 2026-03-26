@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Session Report - AI Exam System{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-file-medical-alt"></i> Session Report</h1>
+    <a href="{{ url_for('admin_reports') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back
+    </a>
+</div>
+
+{% set pct = ((sess.score / sess.total_questions) * 100)|round(1) if sess.total_questions > 0 else 0 %}
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem;">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title"><i class="fas fa-user"></i> Student Info</h2>
+        </div>
+        <table>
+            <tr><td style="color:#64748b;padding:0.5rem 0;">Name</td><td><strong>{{ sess.full_name }}</strong></td></tr>
+            <tr><td style="color:#64748b;padding:0.5rem 0;">Username</td><td><code>{{ sess.username }}</code></td></tr>
+            <tr><td style="color:#64748b;padding:0.5rem 0;">Course</td><td>{{ sess.course }}</td></tr>
+            <tr><td style="color:#64748b;padding:0.5rem 0;">Exam</td><td>{{ sess.title }}</td></tr>
+        </table>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title"><i class="fas fa-chart-pie"></i> Result Summary</h2>
+        </div>
+        <table>
+            <tr><td style="color:#64748b;padding:0.5rem 0;">Score</td><td><strong>{{ sess.score }} / {{ sess.total_questions }}</strong></td></tr>
+            <tr><td style="color:#64748b;padding:0.5rem 0;">Percentage</td><td>
+                <strong style="color:{{ '#16a34a' if pct >= 50 else '#dc2626' }}">{{ pct }}%</strong>
+            </td></tr>
+            <tr><td style="color:#64748b;padding:0.5rem 0;">Result</td><td>
+                {% if pct >= 50 %}
+                    <span class="badge badge-success">PASSED</span>
+                {% else %}
+                    <span class="badge badge-danger">FAILED</span>
+                {% endif %}
+            </td></tr>
+            <tr><td style="color:#64748b;padding:0.5rem 0;">Proctoring Alerts</td><td>
+                <span class="badge {{ 'badge-danger' if logs|length > 0 else 'badge-success' }}">
+                    {{ logs|length }} alerts
+                </span>
+            </td></tr>
+            <tr><td style="color:#64748b;padding:0.5rem 0;">Started</td><td>{{ sess.start_time[:16] }}</td></tr>
+            <tr><td style="color:#64748b;padding:0.5rem 0;">Ended</td><td>{{ sess.end_time[:16] if sess.end_time else 'In Progress' }}</td></tr>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title"><i class="fas fa-exclamation-triangle" style="color:#dc2626"></i> Proctoring Alerts ({{ logs|length }})</h2>
+    </div>
+    {% if logs %}
+    <div class="report-alerts">
+        {% for log in logs %}
+        <div class="alert-item">
+            <i class="fas fa-{{ 'user-slash' if 'no_face' in log.alert_type else 'users' if 'multiple' in log.alert_type else 'eye-slash' if 'away' in log.alert_type else 'exclamation-triangle' }}"></i>
+            <div>
+                <div style="font-weight:600;color:#1e293b;">{{ log.alert_type|replace('_', ' ')|title }}</div>
+                <div style="font-size:0.8rem;color:#64748b;">{{ log.timestamp[:19] }} — {{ log.details }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-shield-alt" style="color:#16a34a;opacity:1"></i>
+        <p style="color:#16a34a;font-weight:600;">No proctoring alerts — Clean exam session!</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

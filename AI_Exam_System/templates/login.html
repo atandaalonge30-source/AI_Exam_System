@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - AI Exam System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="login-wrapper">
+    <div class="login-card">
+        <div class="login-logo">
+            <i class="fas fa-graduation-cap"></i>
+            <h1>AI Exam System</h1>
+            <p>AI-Powered Online Examination & Proctoring</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" style="margin-bottom:1rem;">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="role-tabs">
+            <div class="role-tab active" id="tab-student" onclick="switchRole('student')">
+                <i class="fas fa-user-graduate"></i> Student
+            </div>
+            <div class="role-tab" id="tab-admin" onclick="switchRole('admin')">
+                <i class="fas fa-user-shield"></i> Admin
+            </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('login') }}">
+            <input type="hidden" name="role" id="role-input" value="student">
+
+            <div class="form-group">
+                <label for="username"><i class="fas fa-user"></i> Username</label>
+                <input type="text" id="username" name="username" class="form-control"
+                       placeholder="Enter your username" required autocomplete="username">
+            </div>
+
+            <div class="form-group" id="password-group">
+                <label for="password"><i class="fas fa-lock"></i> Password</label>
+                <input type="password" id="password" name="password" class="form-control"
+                       placeholder="Enter your password" autocomplete="current-password">
+                <small id="admin-hint" style="display:none;color:#d97706;margin-top:0.4rem;display:none;">
+                    <i class="fas fa-info-circle"></i> Admin: any password accepted
+                </small>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:0.85rem;">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </button>
+        </form>
+
+        <div style="text-align:center;margin-top:1.25rem;">
+            <p style="color:#64748b;font-size:0.85rem;">Don't have an account?
+                <a href="{{ url_for('register') }}" style="color:#2563eb;font-weight:600;">Register as Student</a>
+            </p>
+        </div>
+
+        <div style="margin-top:1.5rem;padding:1rem;background:#f8fafc;border-radius:8px;font-size:0.8rem;color:#64748b;">
+            <strong>Demo Credentials:</strong><br>
+            Admin: <code>admin</code> / (any password)<br>
+            Student: <code>student1</code> / <code>password</code>
+        </div>
+    </div>
+</div>
+<script>
+function switchRole(role) {
+    document.getElementById('role-input').value = role;
+    document.getElementById('tab-student').classList.toggle('active', role === 'student');
+    document.getElementById('tab-admin').classList.toggle('active', role === 'admin');
+    const hint = document.getElementById('admin-hint');
+    if (role === 'admin') {
+        hint.style.display = 'block';
+        document.getElementById('password').placeholder = 'Enter any password';
+    } else {
+        hint.style.display = 'none';
+        document.getElementById('password').placeholder = 'Enter your password';
+    }
+}
+</script>
+</body>
+</html>

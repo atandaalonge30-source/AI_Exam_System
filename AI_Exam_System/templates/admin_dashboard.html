@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard - AI Exam System{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-tachometer-alt"></i> Admin Dashboard</h1>
+    <a href="{{ url_for('create_exam') }}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> New Exam
+    </a>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+        <div class="stat-info">
+            <h3>{{ total_students }}</h3>
+            <p>Total Students</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-file-alt"></i></div>
+        <div class="stat-info">
+            <h3>{{ total_exams }}</h3>
+            <p>Total Exams</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-info">
+            <h3>{{ total_sessions }}</h3>
+            <p>Completed Exams</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon orange"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="stat-info">
+            <h3>{{ total_alerts }}</h3>
+            <p>Proctoring Alerts</p>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title"><i class="fas fa-history"></i> Recent Exam Sessions</h2>
+        <a href="{{ url_for('admin_reports') }}" class="btn btn-outline btn-sm">View All</a>
+    </div>
+    {% if recent_sessions %}
+    <div style="overflow-x:auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Exam</th>
+                    <th>Score</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in recent_sessions %}
+                <tr>
+                    <td><strong>{{ s.full_name }}</strong></td>
+                    <td>{{ s.title }}</td>
+                    <td>{{ s.score }}/{{ s.total_questions }}</td>
+                    <td>
+                        {% if s.status == 'completed' %}
+                            <span class="badge badge-success">Completed</span>
+                        {% else %}
+                            <span class="badge badge-warning">In Progress</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ s.start_time[:16] }}</td>
+                    <td>
+                        <a href="{{ url_for('session_report', session_id=s.id) }}" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <p>No exam sessions yet.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

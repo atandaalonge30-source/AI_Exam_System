@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Exam Result - AI Exam System{% endblock %}
+{% block content %}
+
+<div class="result-hero">
+    <h2 style="color:#64748b;font-size:1rem;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">
+        {{ exam_sess.title }}
+    </h2>
+    <div class="score-circle {{ 'passed' if passed else 'failed' }}">
+        <div style="font-size:1.8rem;font-weight:700;color:{{ '#16a34a' if passed else '#dc2626' }}">{{ percentage }}%</div>
+        <div style="font-size:0.7rem;color:#64748b;">SCORE</div>
+    </div>
+    <div class="result-label {{ 'passed' if passed else 'failed' }}">
+        <i class="fas fa-{{ 'trophy' if passed else 'times-circle' }}"></i>
+        {{ 'PASSED' if passed else 'FAILED' }}
+    </div>
+    <div class="result-score {{ 'passed' if passed else 'failed' }}">
+        {{ exam_sess.score }} / {{ exam_sess.total_questions }}
+    </div>
+    <p style="color:#64748b;">Correct answers out of {{ exam_sess.total_questions }} total questions</p>
+
+    {% if alerts > 0 %}
+    <div style="margin-top:1rem;padding:0.75rem 1.5rem;background:#fee2e2;border-radius:8px;color:#dc2626;font-size:0.9rem;display:inline-flex;align-items:center;gap:0.5rem;">
+        <i class="fas fa-exclamation-triangle"></i>
+        {{ alerts }} proctoring alert(s) were recorded during this exam
+    </div>
+    {% endif %}
+
+    <div style="margin-top:1.5rem;">
+        <a href="{{ url_for('student_dashboard') }}" class="btn btn-primary" style="margin-right:0.75rem;">
+            <i class="fas fa-home"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="answer-review">
+    <h2 style="font-size:1.2rem;font-weight:700;margin-bottom:1rem;">
+        <i class="fas fa-list-check" style="color:#2563eb"></i> Answer Review
+    </h2>
+    {% for q in questions %}
+    {% set student_ans = answers.get(q.id|string, '') %}
+    {% set is_correct = student_ans|upper == q.correct_answer|upper %}
+    {% set was_skipped = not student_ans %}
+    <div class="answer-item {{ 'correct' if is_correct else ('skipped' if was_skipped else 'incorrect') }}">
+        <div style="font-size:0.8rem;color:#64748b;margin-bottom:0.25rem;">Question {{ loop.index }}</div>
+        <div style="font-weight:600;color:#1e293b;margin-bottom:0.75rem;">{{ q.question_text }}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-size:0.85rem;margin-bottom:0.5rem;">
+            {% for opt, text in [('A', q.option_a), ('B', q.option_b), ('C', q.option_c), ('D', q.option_d)] %}
+            <div style="padding:0.5rem 0.75rem;border-radius:6px;
+                background:{{ '#dcfce7' if opt == q.correct_answer else ('#fee2e2' if opt == student_ans|upper and not is_correct else '#f8fafc') }};
+                color:{{ '#16a34a' if opt == q.correct_answer else ('#dc2626' if opt == student_ans|upper and not is_correct else '#64748b') }};
+                font-weight:{{ '700' if opt == q.correct_answer or opt == student_ans|upper else '400' }};
+                border:1px solid {{ '#16a34a' if opt == q.correct_answer else ('#dc2626' if opt == student_ans|upper and not is_correct else '#e2e8f0') }};">
+                <strong>{{ opt }}.</strong> {{ text }}
+                {% if opt == q.correct_answer %} <i class="fas fa-check"></i>{% endif %}
+                {% if opt == student_ans|upper and not is_correct %} <i class="fas fa-times"></i>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <div class="answer-indicator {{ 'correct' if is_correct else ('incorrect' if not was_skipped else 'incorrect') }}">
+            {% if was_skipped %}
+                <i class="fas fa-minus-circle"></i> Skipped — Correct answer: {{ q.correct_answer }}
+            {% elif is_correct %}
+                <i class="fas fa-check-circle"></i> Correct! You answered: {{ student_ans|upper }}
+            {% else %}
+                <i class="fas fa-times-circle"></i> Incorrect. You answered: {{ student_ans|upper }} — Correct: {{ q.correct_answer }}
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

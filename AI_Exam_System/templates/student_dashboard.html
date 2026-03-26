@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Student Dashboard - AI Exam System{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-home"></i> Student Dashboard</h1>
+    <span style="color:#64748b;font-size:0.9rem;">Welcome, <strong>{{ session.full_name }}</strong></span>
+</div>
+
+<h2 style="font-size:1.2rem;font-weight:700;color:#1e293b;margin-bottom:1rem;">
+    <i class="fas fa-clipboard-list" style="color:#2563eb"></i> Available Exams
+</h2>
+
+{% if available_exams %}
+<div class="exam-grid">
+    {% for exam in available_exams %}
+    <div class="exam-card">
+        <div class="exam-card-header">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div>
+                    <div class="exam-card-title">{{ exam.title }}</div>
+                    <div class="exam-card-course"><i class="fas fa-book"></i> {{ exam.course }}</div>
+                </div>
+                {% if exam.completed %}
+                    <span class="badge badge-success"><i class="fas fa-check"></i> Done</span>
+                {% else %}
+                    <span class="badge badge-info">Available</span>
+                {% endif %}
+            </div>
+            {% if exam.description %}
+            <p style="color:#64748b;font-size:0.85rem;margin-top:0.75rem;line-height:1.5;">{{ exam.description }}</p>
+            {% endif %}
+        </div>
+        <div class="exam-meta">
+            <div class="exam-meta-item">
+                <i class="fas fa-clock"></i> {{ exam.time_limit }} minutes
+            </div>
+            <div class="exam-meta-item">
+                <i class="fas fa-question-circle"></i> {{ exam.total_questions }} questions
+            </div>
+        </div>
+        <div class="exam-card-footer">
+            {% if exam.completed %}
+            <div style="text-align:center;color:#16a34a;font-weight:600;padding:0.5rem;">
+                <i class="fas fa-check-circle"></i> Exam Completed
+            </div>
+            {% else %}
+            <a href="{{ url_for('start_exam', exam_id=exam.id) }}" class="btn btn-primary" style="width:100%;justify-content:center;">
+                <i class="fas fa-play"></i> Start Exam
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <div class="empty-state">
+        <i class="fas fa-clipboard-list"></i>
+        <p>No exams available at the moment. Check back later.</p>
+    </div>
+</div>
+{% endif %}
+
+{% if my_results %}
+<h2 style="font-size:1.2rem;font-weight:700;color:#1e293b;margin:2rem 0 1rem;">
+    <i class="fas fa-history" style="color:#7c3aed"></i> My Results
+</h2>
+<div class="card">
+    <div style="overflow-x:auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Exam</th>
+                    <th>Course</th>
+                    <th>Score</th>
+                    <th>Percentage</th>
+                    <th>Result</th>
+                    <th>Date</th>
+                    <th>View</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in my_results %}
+                {% set pct = ((r.score / r.total_questions) * 100)|round(1) if r.total_questions > 0 else 0 %}
+                <tr>
+                    <td><strong>{{ r.title }}</strong></td>
+                    <td>{{ r.course }}</td>
+                    <td>{{ r.score }} / {{ r.total_questions }}</td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:0.5rem;">
+                            <div style="flex:1;background:#e2e8f0;border-radius:10px;height:8px;">
+                                <div style="width:{{ pct }}%;background:{{ '#16a34a' if pct >= 50 else '#dc2626' }};height:8px;border-radius:10px;"></div>
+                            </div>
+                            <span style="font-weight:600;color:{{ '#16a34a' if pct >= 50 else '#dc2626' }}">{{ pct }}%</span>
+                        </div>
+                    </td>
+                    <td>
+                        {% if pct >= 50 %}
+                            <span class="badge badge-success">Passed</span>
+                        {% else %}
+                            <span class="badge badge-danger">Failed</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ r.end_time[:10] if r.end_time else '—' }}</td>
+                    <td>
+                        <a href="{{ url_for('exam_result', session_id=r.id) }}" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

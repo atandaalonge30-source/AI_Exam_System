@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Reports - AI Exam System{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-chart-bar"></i> Exam Reports & Monitoring</h1>
+</div>
+
+<div class="card">
+    {% if sessions %}
+    <div style="overflow-x:auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Exam</th>
+                    <th>Score</th>
+                    <th>Result</th>
+                    <th>Alerts</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sessions %}
+                {% set pct = ((s.score / s.total_questions) * 100)|round(1) if s.total_questions > 0 else 0 %}
+                <tr>
+                    <td><strong>{{ s.full_name }}</strong></td>
+                    <td>{{ s.title }}</td>
+                    <td>{{ s.score }}/{{ s.total_questions }} ({{ pct }}%)</td>
+                    <td>
+                        {% if s.status == 'completed' %}
+                            {% if pct >= 50 %}
+                                <span class="badge badge-success">Passed</span>
+                            {% else %}
+                                <span class="badge badge-danger">Failed</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="badge badge-warning">In Progress</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if s.alert_count > 0 %}
+                            <span class="badge badge-danger"><i class="fas fa-exclamation-triangle"></i> {{ s.alert_count }}</span>
+                        {% else %}
+                            <span class="badge badge-success"><i class="fas fa-check"></i> None</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if s.status == 'completed' %}
+                            <span class="badge badge-success">Completed</span>
+                        {% else %}
+                            <span class="badge badge-warning">In Progress</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ s.start_time[:16] }}</td>
+                    <td>
+                        <a href="{{ url_for('session_report', session_id=s.id) }}" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-chart-bar"></i>
+        <p>No exam sessions yet.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

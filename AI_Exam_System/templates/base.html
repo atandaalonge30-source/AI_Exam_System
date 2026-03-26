@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI Exam System{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    {% if session.user_id %}
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-graduation-cap"></i>
+            <span>AI Exam System</span>
+        </div>
+        <div class="nav-links">
+            {% if session.role == 'admin' %}
+                <a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                <a href="{{ url_for('admin_exams') }}"><i class="fas fa-file-alt"></i> Exams</a>
+                <a href="{{ url_for('admin_students') }}"><i class="fas fa-users"></i> Students</a>
+                <a href="{{ url_for('admin_reports') }}"><i class="fas fa-chart-bar"></i> Reports</a>
+            {% else %}
+                <a href="{{ url_for('student_dashboard') }}"><i class="fas fa-home"></i> Dashboard</a>
+            {% endif %}
+        </div>
+        <div class="nav-user">
+            <span><i class="fas fa-user-circle"></i> {{ session.full_name }}</span>
+            <span class="badge-role {{ session.role }}">{{ session.role|title }}</span>
+            <a href="{{ url_for('logout') }}" class="btn-logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </nav>
+    {% endif %}
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-circle' if category == 'danger' else 'info-circle' }}"></i>
+                        {{ message }}
+                        <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

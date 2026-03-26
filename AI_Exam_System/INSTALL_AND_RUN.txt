@@ -1,0 +1,112 @@
+============================================================
+  AI-Powered Online Examination & Proctoring System
+  Built with Python + Flask + OpenCV (Machine Learning)
+============================================================
+
+REQUIREMENTS:
+  - Python 3.9 or higher (https://www.python.org/downloads/)
+  - A webcam (for AI face proctoring)
+  - A modern browser (Chrome recommended)
+
+------------------------------------------------------------
+STEP-BY-STEP INSTALLATION & RUN GUIDE
+------------------------------------------------------------
+
+STEP 1 — Install Python
+  Download Python from: https://www.python.org/downloads/
+  During installation, CHECK the box "Add Python to PATH"
+
+STEP 2 — Open a Terminal / Command Prompt
+  Windows: Press Win+R, type "cmd", press Enter
+  Mac/Linux: Open "Terminal"
+
+STEP 3 — Navigate to the project folder
+  Type this command (replace the path with where you extracted):
+    cd C:\Users\YourName\Downloads\exam_system
+  (On Mac/Linux use forward slashes)
+
+STEP 4 — Install required packages
+  Type this command and press Enter:
+    pip install -r requirements.txt
+
+  Wait for all packages to download and install.
+  This installs: Flask, OpenCV, and NumPy
+
+STEP 5 — Run the application
+  Type this command and press Enter:
+    python app.py
+
+  You will see a message like:
+    Server starting at: http://127.0.0.1:5000
+
+STEP 6 — Open in browser
+  Open your web browser and go to:
+    http://127.0.0.1:5000
+
+------------------------------------------------------------
+LOGIN CREDENTIALS
+------------------------------------------------------------
+
+ADMIN LOGIN (any password works):
+  Username: admin
+  Password: (type anything, e.g. "123")
+  Role: Select "Admin" tab
+
+STUDENT DEMO ACCOUNT:
+  Username: student1
+  Password: password
+  Role: Select "Student" tab
+
+------------------------------------------------------------
+FEATURES
+------------------------------------------------------------
+
+ADMIN CAN:
+  - View dashboard with statistics
+  - Create exams with MCQ questions
+  - Set time limits for exams
+  - Activate/deactivate exams
+  - View all students
+  - View proctoring reports & cheating alerts
+
+STUDENTS CAN:
+  - Register a new account
+  - Take available exams
+  - AI webcam monitors them during exam
+  - Auto-submit when time runs out
+  - View detailed results with answer review
+
+AI PROCTORING DETECTS:
+  - No face visible in webcam
+  - Multiple faces (potential helper)
+  - Tab switching during exam
+  - Right-click and copy attempts
+
+------------------------------------------------------------
+TROUBLESHOOTING
+------------------------------------------------------------
+
+Problem: "pip is not recognized"
+  Solution: Reinstall Python and check "Add to PATH"
+
+Problem: "ModuleNotFoundError: No module named 'flask'"
+  Solution: Run: pip install flask opencv-python numpy
+
+Problem: Webcam not working
+  Solution: Allow browser camera access when prompted
+
+Problem: "Address already in use" on port 5000
+  Solution (Mac): Run: python app.py (Mac uses port 5001 auto)
+  Or change port in app.py last line to: port=5001
+
+Problem: OpenCV install fails on some systems
+  Solution: Try: pip install opencv-python-headless
+
+------------------------------------------------------------
+STOPPING THE SERVER
+------------------------------------------------------------
+  Press Ctrl+C in the terminal to stop the server
+
+============================================================
+  Developed using Python, Flask, OpenCV, SQLite
+============================================================

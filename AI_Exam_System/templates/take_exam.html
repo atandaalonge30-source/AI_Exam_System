@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}{{ exam.title }} - AI Exam System{% endblock %}
+{% block content %}
+
+<div id="cheat-modal" class="modal">
+    <div class="modal-content">
+        <i class="fas fa-exclamation-triangle"></i>
+        <h2>Proctoring Alert!</h2>
+        <p id="cheat-modal-msg">Suspicious behavior detected. Please return to the exam window.</p>
+        <div class="modal-actions">
+            <button class="btn btn-primary" onclick="closeModal()">I Understand, Continue</button>
+        </div>
+    </div>
+</div>
+
+<div class="exam-header">
+    <div>
+        <h2 style="font-size:1.2rem;font-weight:700;color:#1e293b;">{{ exam.title }}</h2>
+        <span style="color:#64748b;font-size:0.85rem;"><i class="fas fa-book"></i> {{ exam.course }}</span>
+    </div>
+    <div class="exam-timer" id="timer">
+        <i class="fas fa-clock"></i>
+        <span id="timer-display">{{ exam.time_limit }}:00</span>
+    </div>
+</div>
+
+<div class="proctoring-container">
+    <div class="camera-feed">
+        <video id="webcam" autoplay muted playsinline></video>
+        <div class="camera-status ok" id="cam-status">
+            <i class="fas fa-eye"></i> Monitoring
+        </div>
+    </div>
+</div>
+
+<form id="exam-form" method="POST" action="{{ url_for('submit_exam', session_id=exam_sess.id) }}">
+    <div class="questions-list">
+        {% for q in questions %}
+        <div class="question-card">
+            <div class="question-num">Question {{ loop.index }} of {{ questions|length }}</div>
+            <div class="question-text">{{ q.question_text }}</div>
+            <div class="options-grid">
+                {% for opt, text in [('A', q.option_a), ('B', q.option_b), ('C', q.option_c), ('D', q.option_d)] %}
+                <label class="option-label" id="opt-{{ q.id }}-{{ opt }}" onclick="selectOption(this, '{{ q.id }}')">
+                    <input type="radio" name="q_{{ q.id }}" value="{{ opt }}">
+                    <div class="option-key">{{ opt }}</div>
+                    <span>{{ text }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div style="text-align:center;margin-top:2rem;padding-bottom:2rem;">
+        <button type="button" onclick="confirmSubmit()" class="btn btn-success" style="padding:1rem 3rem;font-size:1rem;">
+            <i class="fas fa-paper-plane"></i> Submit Exam
+        </button>
+    </div>
+</form>
+
+<canvas id="snapshot-canvas" style="display:none;"></canvas>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const SESSION_ID = {{ exam_sess.id }};
+const TIME_LIMIT_SECONDS = {{ exam.time_limit }} * 60;
+let timeLeft = TIME_LIMIT_SECONDS;
+let timerInterval;
+let proctoringInterval;
+let noFaceCount = 0;
+let alertCooldown = false;
+
+function selectOption(label, qId) {
+    document.querySelectorAll(`[id^="opt-${qId}-"]`).forEach(el => el.classList.remove('selected'));
+    label.classList.add('selected');
+    label.querySelector('input[type="radio"]').checked = true;
+}
+
+function startTimer() {
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        const mins = Math.floor(timeLeft / 60);
+        const secs = timeLeft % 60;
+        const display = `${mins}:${secs.toString().padStart(2, '0')}`;
+        document.getElementById('timer-display').textContent = display;
+        const timerEl = document.getElementById('timer');
+        if (timeLeft <= 60) {
+            timerEl.className = 'exam-timer danger';
+        } else if (timeLeft <= 300) {
+            timerEl.className = 'exam-timer warning';
+        }
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            document.getElementById('exam-form').submit();
+        }
+    }, 1000);
+}
+
+function confirmSubmit() {
+    if (confirm('Are you sure you want to submit the exam? You cannot change answers after submission.')) {
+        clearInterval(timerInterval);
+        clearInterval(proctoringInterval);
+        document.getElementById('exam-form').submit();
+    }
+}
+
+function closeModal() {
+    document.getElementById('cheat-modal').classList.remove('show');
+}
+
+function showAlert(msg) {
+    if (alertCooldown) return;
+    alertCooldown = true;
+    document.getElementById('cheat-modal-msg').textContent = msg;
+    document.getElementById('cheat-modal').classList.add('show');
+    setTimeout(() => { alertCooldown = false; }, 15000);
+}
+
+async function logAlert(alertType, details) {
+    try {
+        await fetch('/api/proctoring/log', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ session_id: SESSION_ID, alert_type: alertType, details: details })
+        });
+    } catch(e) {}
+}
+
+async function captureAndAnalyze() {
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('snapshot-canvas');
+    if (!video.srcObject || video.readyState < 2) return;
+    canvas.width = 320;
+    canvas.height = 240;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, 320, 240);
+    const frameData = canvas.toDataURL('image/jpeg', 0.5);
+    try {
+        const resp = await fetch('/api/proctoring/analyze', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ frame: frameData })
+        });
+        const result = await resp.json();
+        const statusEl = document.getElementById('cam-status');
+        if (result.status === 'ok') {
+            statusEl.className = 'camera-status ok';
+            statusEl.innerHTML = '<i class="fas fa-eye"></i> Face OK';
+            noFaceCount = 0;
+        } else if (result.status === 'no_face') {
+            noFaceCount++;
+            statusEl.className = 'camera-status danger';
+            statusEl.innerHTML = '<i class="fas fa-user-slash"></i> No Face!';
+            if (noFaceCount >= 3) {
+                logAlert('no_face_detected', 'No face detected for extended period');
+                showAlert('Warning: Your face is not visible to the camera. Please sit in front of your webcam. This has been logged.');
+                noFaceCount = 0;
+            }
+        } else if (result.status === 'multiple_faces') {
+            statusEl.className = 'camera-status danger';
+            statusEl.innerHTML = '<i class="fas fa-users"></i> Multiple Faces!';
+            logAlert('multiple_faces_detected', `${result.faces} faces detected in frame`);
+            showAlert('ALERT: Multiple faces detected in the camera! This is a serious proctoring violation and has been recorded.');
+        }
+    } catch(e) {
+        document.getElementById('cam-status').innerHTML = '<i class="fas fa-camera-slash"></i> Cam Error';
+    }
+}
+
+async function startWebcam() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } });
+        document.getElementById('webcam').srcObject = stream;
+        proctoringInterval = setInterval(captureAndAnalyze, 3000);
+    } catch(e) {
+        document.getElementById('cam-status').className = 'camera-status warning';
+        document.getElementById('cam-status').innerHTML = '<i class="fas fa-camera-slash"></i> No Camera';
+        logAlert('camera_unavailable', 'Student camera not accessible');
+    }
+}
+
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        logAlert('tab_switch', 'Student switched away from exam tab');
+        showAlert('WARNING: You switched away from the exam tab. This has been recorded as a proctoring alert.');
+    }
+});
+
+window.addEventListener('contextmenu', e => e.preventDefault());
+
+document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && ['c','v','a','u'].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+    }
+    if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
+        e.preventDefault();
+    }
+});
+
+startTimer();
+startWebcam();
+</script>
+{% endblock %}

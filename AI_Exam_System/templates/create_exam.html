@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Create Exam - AI Exam System{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-plus-circle"></i> Create New Exam</h1>
+    <a href="{{ url_for('admin_exams') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back
+    </a>
+</div>
+
+<div class="card" style="max-width:700px;margin:0 auto;">
+    <form method="POST" action="{{ url_for('create_exam') }}">
+        <div class="form-group">
+            <label><i class="fas fa-heading"></i> Exam Title *</label>
+            <input type="text" name="title" class="form-control" placeholder="e.g. Cyber Security Fundamentals" required>
+        </div>
+        <div class="form-group">
+            <label><i class="fas fa-book"></i> Course / Subject *</label>
+            <input type="text" name="course" class="form-control" placeholder="e.g. Cyber Security, Mathematics" required>
+        </div>
+        <div class="form-group">
+            <label><i class="fas fa-align-left"></i> Description</label>
+            <textarea name="description" class="form-control" placeholder="Brief description of the exam..."></textarea>
+        </div>
+        <div class="form-group">
+            <label><i class="fas fa-clock"></i> Time Limit (minutes) *</label>
+            <input type="number" name="time_limit" class="form-control" value="30" min="5" max="180" required>
+        </div>
+        <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1.5rem;">
+            <a href="{{ url_for('admin_exams') }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-arrow-right"></i> Create & Add Questions
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

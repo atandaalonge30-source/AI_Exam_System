@@ -26,17 +26,14 @@
             {% endif %}
         {% endwith %}
 
-        <div class="role-tabs">
-            <div class="role-tab active" id="tab-student" onclick="switchRole('student')">
-                <i class="fas fa-user-graduate"></i> Student
-            </div>
-            <div class="role-tab" id="tab-admin" onclick="switchRole('admin')">
-                <i class="fas fa-user-shield"></i> Admin
-            </div>
-        </div>
-
         <form method="POST" action="{{ url_for('login') }}">
-            <input type="hidden" name="role" id="role-input" value="student">
+            <div class="form-group">
+                <label for="role"><i class="fas fa-users"></i> Login as</label>
+                <select name="role" id="role-select" class="form-control" onchange="updateRole()">
+                    <option value="student">Student</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
 
             <div class="form-group">
                 <label for="username"><i class="fas fa-user"></i> Username</label>
@@ -48,8 +45,8 @@
                 <label for="password"><i class="fas fa-lock"></i> Password</label>
                 <input type="password" id="password" name="password" class="form-control"
                        placeholder="Enter your password" autocomplete="current-password">
-                <small id="admin-hint" style="display:none;color:#d97706;margin-top:0.4rem;display:none;">
-                    <i class="fas fa-info-circle"></i> Admin: any password accepted
+                <small id="admin-hint" style="display:none;color:#d97706;margin-top:0.4rem;">
+                    <i class="fas fa-info-circle"></i> Admin: use your administrator password
                 </small>
             </div>
 
@@ -66,20 +63,18 @@
 
         <div style="margin-top:1.5rem;padding:1rem;background:#f8fafc;border-radius:8px;font-size:0.8rem;color:#64748b;">
             <strong>Demo Credentials:</strong><br>
-            Admin: <code>admin</code> / (any password)<br>
+            Admin: <code>admin</code> / <code>admin123</code><br>
             Student: <code>student1</code> / <code>password</code>
         </div>
     </div>
 </div>
 <script>
-function switchRole(role) {
-    document.getElementById('role-input').value = role;
-    document.getElementById('tab-student').classList.toggle('active', role === 'student');
-    document.getElementById('tab-admin').classList.toggle('active', role === 'admin');
+function updateRole() {
+    const role = document.getElementById('role-select').value;
     const hint = document.getElementById('admin-hint');
     if (role === 'admin') {
         hint.style.display = 'block';
-        document.getElementById('password').placeholder = 'Enter any password';
+        document.getElementById('password').placeholder = 'Enter admin password';
     } else {
         hint.style.display = 'none';
         document.getElementById('password').placeholder = 'Enter your password';

@@ -10,12 +10,13 @@ from flask import (Flask, render_template, request, redirect, url_for,
 import cv2
 import numpy as np
 from fpdf import FPDF
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.secret_key = "exam_system_secret_2024"
 DATABASE = "exam_system.db"
 
-HAAR_CASCADE = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+HAAR_CASCADE = f"{cv2.data.haarcascades}haarcascade_frontalface_default.xml"
 face_cascade = cv2.CascadeClassifier(HAAR_CASCADE)
 
 
@@ -96,12 +97,22 @@ def init_db():
         if existing == 0:
             db.execute(
                 "INSERT INTO users (username, password, role, full_name, email) VALUES (?,?,?,?,?)",
-                ("admin", "admin123", "admin", "System Administrator", "admin@examSystem.com")
+                ("admin", generate_password_hash("admin123"), "admin", "System Administrator", "admin@examSystem.com")
             )
             db.execute(
                 "INSERT INTO users (username, password, role, full_name, email) VALUES (?,?,?,?,?)",
-                ("student1", "password", "student", "John Doe", "john@example.com")
+                ("student1", generate_password_hash("password"), "student", "John Doe", "john@example.com")
             )
+        # Simple migration: if any existing passwords are plain text, hash them on startup.
+        users = db.execute("SELECT id, password FROM users").fetchall()
+        for u in users:
+            pwd = u["password"]
+            if not pwd.startswith("scrypt:"):
+                db.execute("UPDATE users SET password=? WHERE id=?", (generate_password_hash(pwd), u["id"]))
+        db.commit()
+        # Insert sample exam if not exists
+        exam_exists = db.execute("SELECT COUNT(*) FROM exams WHERE title='Cyber Security Basics'").fetchone()[0]
+        if exam_exists == 0:
             sample_exam_id = db.execute(
                 "INSERT INTO exams (title, description, course, time_limit, total_questions, created_by, is_active) VALUES (?,?,?,?,?,?,?)",
                 ("Cyber Security Basics", "An introductory exam on cybersecurity fundamentals", "Cyber Security", 30, 5, 1, 1)
@@ -132,7 +143,8 @@ def init_db():
                 "INSERT INTO questions (exam_id, question_text, option_a, option_b, option_c, option_d, correct_answer) VALUES (?,?,?,?,?,?,?)",
                 questions
             )
-            db.commit()
+        db.commit()
+
 
 
 def login_required(f):
@@ -179,7 +191,7 @@ def login():
                 "SELECT * FROM users WHERE username=? AND role='admin'",
                 (username,)
             ).fetchone()
-            if user:
+            if user and check_password_hash(user["password"], password):
                 session["user_id"] = user["id"]
                 session["username"] = user["username"]
                 session["full_name"] = user["full_name"]
@@ -190,10 +202,10 @@ def login():
                 flash("Invalid admin credentials.", "danger")
         else:
             user = db.execute(
-                "SELECT * FROM users WHERE username=? AND password=? AND role='student'",
-                (username, password)
+                "SELECT * FROM users WHERE username=? AND role='student'",
+                (username,)
             ).fetchone()
-            if user:
+            if user and check_password_hash(user["password"], password):
                 session["user_id"] = user["id"]
                 session["username"] = user["username"]
                 session["full_name"] = user["full_name"]
@@ -208,13 +220,10 @@ def login():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "").strip()
-        full_name = request.form.get("full_name", "").strip()
-        email = request.form.get("email", "").strip()
-        if not username or not password or not full_name:
+        if not (username := request.form.get("username", "").strip()) or not (password := request.form.get("password", "").strip()) or not (full_name := request.form.get("full_name", "").strip()):
             flash("All fields are required.", "danger")
             return render_template("register.html")
+        email = request.form.get("email", "").strip()
         db = get_db()
         existing = db.execute("SELECT id FROM users WHERE username=?", (username,)).fetchone()
         if existing:
@@ -222,7 +231,7 @@ def register():
             return render_template("register.html")
         db.execute(
             "INSERT INTO users (username, password, role, full_name, email) VALUES (?,?,?,?,?)",
-            (username, password, "student", full_name, email)
+            (username, generate_password_hash(password), "student", full_name, email)
         )
         db.commit()
         flash("Registration successful! You can now log in.", "success")
@@ -281,7 +290,14 @@ def create_exam():
         title = request.form.get("title", "").strip()
         description = request.form.get("description", "").strip()
         course = request.form.get("course", "").strip()
-        time_limit = int(request.form.get("time_limit", 30))
+        if not (time_limit_input := request.form.get("time_limit", "").strip()):
+            time_limit = 30
+        else:
+            try:
+                time_limit = int(time_limit_input)
+            except ValueError:
+                flash("Time limit must be a valid number.", "danger")
+                return render_template("create_exam.html")
         if not title or not course:
             flash("Title and course are required.", "danger")
             return render_template("create_exam.html")
@@ -342,8 +358,7 @@ def delete_question(exam_id, q_id):
 @admin_required
 def toggle_exam(exam_id):
     db = get_db()
-    exam = db.execute("SELECT is_active FROM exams WHERE id=?", (exam_id,)).fetchone()
-    if exam:
+    if (exam := db.execute("SELECT is_active FROM exams WHERE id=?", (exam_id,)).fetchone()):
         new_status = 0 if exam["is_active"] else 1
         db.execute("UPDATE exams SET is_active=? WHERE id=?", (new_status, exam_id))
         db.commit()
@@ -534,11 +549,10 @@ def start_exam(exam_id):
     if existing:
         flash("You have already completed this exam.", "info")
         return redirect(url_for("student_dashboard"))
-    in_progress = db.execute(
+    if (in_progress := db.execute(
         "SELECT id FROM exam_sessions WHERE student_id=? AND exam_id=? AND status='in_progress'",
         (session["user_id"], exam_id)
-    ).fetchone()
-    if in_progress:
+    ).fetchone()):
         return redirect(url_for("take_exam", session_id=in_progress["id"]))
     new_session = db.execute(
         "INSERT INTO exam_sessions (student_id, exam_id, total_questions) VALUES (?,?,?)",
@@ -583,11 +597,7 @@ def submit_exam(session_id):
     if not exam_sess:
         flash("Session not found or already completed.", "warning")
         return redirect(url_for("student_dashboard"))
-    answers = {}
-    for key, value in request.form.items():
-        if key.startswith("q_"):
-            q_id = key[2:]
-            answers[q_id] = value
+    answers = {key[2:]: value for key, value in request.form.items() if key.startswith("q_")}
     questions = db.execute(
         "SELECT * FROM questions WHERE exam_id=?", (exam_sess["exam_id"],)
     ).fetchall()
@@ -694,7 +704,7 @@ if __name__ == "__main__":
     print("  AI-Powered Examination & Proctoring System")
     print("="*60)
     print("  Server starting at: http://127.0.0.1:5000")
-    print("  Admin Login  -> username: admin  | any password")
+    print("  Admin Login  -> username: admin  | password: admin123")
     print("  Student Demo -> username: student1 | password: password")
     print("="*60 + "\n")
     app.run(debug=True, host="0.0.0.0", port=5000)
